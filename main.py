@@ -7,12 +7,13 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 options = webdriver.ChromeOptions()
+options.binary_location = "/usr/bin/google-chrome"
 options.add_argument("--headless")  # Modo sem interface gráfica
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 
 # Caminho do ChromeDriver no Linux (Render)
-service = Service("/usr/bin/chromedriver")
+service = Service('/usr/bin/chromedriver')
 
 driver = webdriver.Chrome(service=service, options=options)
 import time
