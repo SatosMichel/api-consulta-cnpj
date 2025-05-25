@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Consulta de CNPJ SEFAZ BA</title>
+</head>
+<body>
+    <h1>Consulta de CNPJ SEFAZ BA</h1>
+    <form method="post">
+        <label for="cnpj">Digite o CNPJ (somente números):</label><br>
+        <input type="text" id="cnpj" name="cnpj" minlength="14" maxlength="14" required>
+        <button type="submit">Consultar</button>
+    </form>
+    <hr>
+    <div>
+        <strong>Resultado:</strong><br>
+        <pre>{{ resultado }}</pre>
+    </div>
+</body>
+</html>
