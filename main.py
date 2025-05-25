@@ -4,7 +4,11 @@ from fastapi.staticfiles import StaticFiles
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+
+import os  # Para pegar variável de ambiente
+import time
 
 options = webdriver.ChromeOptions()
 options.binary_location = "/usr/bin/google-chrome"
@@ -27,7 +31,7 @@ def consultar_cnpj_sefaz(cnpj):
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--window-size=1920,1080')
-    service = Service('/usr/bin/chromedriver')
+    service = Service(os.environ.get("CHROMEDRIVER_PATH", "/usr/lib/chromium/chromedriver"))
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
     try:
