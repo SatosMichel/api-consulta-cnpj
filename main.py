@@ -4,7 +4,17 @@ from fastapi.staticfiles import StaticFiles
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+
+options = webdriver.ChromeOptions()
+options.add_argument("--headless")  # Modo sem interface gráfica
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
+
+# Caminho do ChromeDriver no Linux (Render)
+service = Service("/usr/bin/chromedriver")
+
+driver = webdriver.Chrome(service=service, options=options)
 import time
 
 app = FastAPI()
@@ -16,7 +26,7 @@ def consultar_cnpj_sefaz(cnpj):
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--window-size=1920,1080')
-    service = Service('chromedriver.exe')
+    service = Service('/usr/bin/chromedriver')
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
     try:
