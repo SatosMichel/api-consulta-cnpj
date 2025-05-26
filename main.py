@@ -1,51 +1,42 @@
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-import os  # Para pegar variável de ambiente
 import time
-
-options = webdriver.ChromeOptions()
-options.binary_location = "/usr/bin/google-chrome"
-options.add_argument("--headless")  # Modo sem interface gráfica
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-dev-shm-usage")
-
-# Caminho do ChromeDriver no Linux (Render)
-service = Service('/usr/bin/chromedriver')
-
-def iniciar_driver():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
-
-    service = Service("/usr/bin/chromedriver")
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    return driver
-
-driver = webdriver.Chrome(service=service, options=options)
-import time
+import os # Importar para possível uso de variáveis de ambiente, embora não estritamente necessário se chromedriver estiver no PATH
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-def consultar_cnpj_sefaz(cnpj):
+# Função para iniciar o driver do Selenium de forma isolada
+# e com as opções recomendadas para ambientes headless/Docker.
+def get_chrome_driver():
     chrome_options = Options()
-    chrome_options.add_argument('--headless')  # Torna o processo invisível
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--window-size=1920,1080')
-    service = Service(os.environ.get("CHROMEDRIVER_PATH", "/usr/lib/chromium/chromedriver"))
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    chrome_options.add_argument("--headless")              # Executa o Chrome em modo headless (sem interface gráfica)
+    chrome_options.add_argument("--no-sandbox")            # Essencial para rodar no Docker como não-root
+    chrome_options.add_argument("--disable-dev-shm-usage") # Reduz problemas de memória em contêineres Docker
+    chrome_options.add_argument("--disable-gpu")           # Desativa o uso da GPU (importante para headless)
+    chrome_options.add_argument("--window-size=1920,1080") # Define o tamanho da janela virtual
 
+    # Caminho do ChromeDriver:
+    # Se o chromedriver for instalado em /usr/local/bin (como no Dockerfile proposto),
+    # ele já estará no PATH do sistema, e você não precisa especificar o executable_path.
+    # Caso contrário, descomente a linha abaixo e ajuste o caminho.
+    # service = Service(executable_path="/usr/local/bin/chromedriver")
+    
+    # Se o chromedriver estiver no PATH, basta instanciar Service sem argumentos
+    service = Service() # Selenium 4+ consegue encontrar o driver se ele estiver no PATH
+
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    return driver
+
+def consultar_cnpj_sefaz(cnpj):
+    driver = None # Inicializa driver como None para garantir que finally sempre o verifique
     try:
+        driver = get_chrome_driver() # Chama a função para obter um driver novo para cada consulta
         driver.get("https://portal.sefaz.ba.gov.br/scripts/cadastro/cadastroBa/consultaBa.asp")
         time.sleep(2)
 
@@ -68,12 +59,21 @@ def consultar_cnpj_sefaz(cnpj):
                 trecho = page[inicio:inicio+500]
 
                 if "ATIVO" in trecho:
-                    # Buscar inscrição estadual
                     if "Inscrição Estadual" in page:
                         inicio_ie = page.find("Inscrição Estadual")
+                        # Certifica-se de que a IE está na mesma linha ou próxima ao texto
+                        # Pode ser necessário um parsing mais robusto se a estrutura HTML variar
                         trecho_ie = page[inicio_ie:inicio_ie+150]
-                        ie = trecho_ie.split("&nbsp;")[1].strip()
-                        return ("CNPJ - Ativo", f"Inscrição Estadual: {ie}", "#ffffff", "normal")
+                        
+                        # Regex pode ser mais robusto para extrair a IE
+                        import re
+                        match = re.search(r'Inscrição Estadual[\s\S]*?<td>\s*(\d+)\s*</td>', trecho_ie)
+                        if match:
+                            ie = match.group(1).strip()
+                            return ("CNPJ - Ativo", f"Inscrição Estadual: {ie}", "#ffffff", "normal")
+                        else:
+                             return ("CNPJ - Ativo", "Inscrição Estadual não encontrada", "#ffffff", "normal")
+
 
                 elif "BAIXADO" in trecho:
                     return ("CNPJ - Ativo", "ISENTO - de Inscrição Estadual", "#ffffff", "normal")
@@ -84,10 +84,12 @@ def consultar_cnpj_sefaz(cnpj):
         return ("Erro", "Não foi possível consultar o CNPJ.", "#ffffff", "normal")
 
     except Exception as e:
+        print(f"Erro na consulta: {e}") # Adicionado print para depuração
         return ("Erro", f"Erro ao consultar: {e}", "#ffffff", "normal")
 
     finally:
-        driver.quit()
+        if driver: # Garante que driver só será fechado se tiver sido inicializado
+            driver.quit()
 
 @app.get("/", response_class=HTMLResponse)
 def formulario():
