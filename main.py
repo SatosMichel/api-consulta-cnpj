@@ -390,6 +390,7 @@ def consultar_ficha_financeira(cnpj):
 # ROTAS DA APLICAÇÃO
 # ----------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
+@app.head("/", response_class=HTMLResponse)
 def home():
     conteudo = """
     <h2>Consulta de CNPJ</h2>
