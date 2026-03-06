@@ -62,9 +62,9 @@ def consultar_cnpj_sefaz(cnpj):
     
     try:
         session = requests.Session()
-        session.get("https://portal.sefaz.ba.gov.br/scripts/cadastro/cadastroBa/consultaBa.asp", verify=False, timeout=10)
+        session.get("https://portal.sefaz.ba.gov.br/scripts/cadastro/cadastroBa/consultaBa.asp", verify=False, timeout=30)
         
-        response = session.post(url, data=data, headers=headers, verify=False, timeout=10)
+        response = session.post(url, data=data, headers=headers, verify=False, timeout=30)
         response.encoding = 'ISO-8859-1' 
         
         page = response.text
@@ -101,6 +101,9 @@ def consultar_cnpj_sefaz(cnpj):
                 
         return consultar_brasilapi(cnpj_numeros)
 
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+        print("Erro de comunicação/timeout com a Sefaz.")
+        return ("Erro", "Instabilidade no site da Sefaz, sem retorno até o momento.", "#ffffff", "normal")
     except Exception as e:
         print(f"Erro na consulta: {e}") 
         return ("Erro", f"Erro ao consultar: {e}", "#ffffff", "normal")
