@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 import os
 import time
 import re
@@ -9,11 +10,19 @@ import urllib3
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from cnpj_api import router as cnpj_api_router
+from comercial_auth import is_comercial_session_valid, router as comercial_auth_router
+from opencnpj_bigquery_provider import OpenCnpjBigQueryProvider
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.state.cnpj_provider_factory = OpenCnpjBigQueryProvider
+app.state.cnpj_data_provider = None
+app.include_router(cnpj_api_router)
+app.include_router(comercial_auth_router)
+templates = Jinja2Templates(directory="templates")
 
 def consultar_brasilapi(cnpj):
     url = f"https://brasilapi.com.br/api/cnpj/v1/{cnpj}"
@@ -244,12 +253,13 @@ def template_base(titulo, conteudo, cor_fundo="#eafaf1", cor_texto="#000000"):
     /* Selection Cards */
     .cards-container {
         display: flex;
+        flex-wrap: wrap;
         gap: 20px;
         justify-content: center;
         margin-top: 30px;
     }
     .card {
-        flex: 1;
+        flex: 1 1 130px;
         padding: 30px 20px;
         border-radius: 10px;
         border: 2px solid #e2e8f0;
@@ -411,6 +421,12 @@ def home():
             <h3>Financeiro</h3>
             <p>Ficha cadastral completa com dados da Receita Federal (QSA, Sócios).</p>
         </a>
+
+        <a href="/comercial" class="card">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path><path d="M15 9h4v4"></path></svg>
+            <h3>Comercial</h3>
+            <p>Área destinada a captação de novos clientes.</p>
+        </a>
     </div>
     """
     return template_base("Consulta CNPJ - Home", conteudo)
@@ -465,6 +481,17 @@ def form_financeiro():
     <a href="/" style="color:#64748b; font-size:14px; margin-top:10px; display:inline-block;">← Voltar</a>
     """
     return template_base("Consulta Financeira", conteudo)
+
+
+@app.get("/comercial", response_class=HTMLResponse)
+def area_comercial(request: Request):
+    if not is_comercial_session_valid(request.cookies.get("comercial_session")):
+        return RedirectResponse("/comercial/login", status_code=303)
+    return templates.TemplateResponse(
+        request=request,
+        name="comercial.html",
+        context={"titulo": "Prospecção comercial por CNAE"},
+    )
 
 
 @app.post("/financeiro", response_class=HTMLResponse)

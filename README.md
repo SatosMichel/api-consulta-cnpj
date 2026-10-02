@@ -64,6 +64,68 @@ A aplicação substituiu bibliotecas extremamente pesadas (como Selenium/ChromeD
 5. Acesse na sua máquina a página principal:
    `http://127.0.0.1:8000/`
 
+### Restrição de acesso Comercial
+
+A tela Comercial e todas as rotas `/api` exigem uma sessão autenticada. A sessão expira após 12 horas, usa cookie `HttpOnly`/`SameSite=Lax` e é marcada `Secure` quando servida por HTTPS. Usuário, senha e segredo de assinatura são lidos somente do ambiente.
+
+Configure estes secrets no Render em **Environment Variables**:
+
+* `COMERCIAL_USERNAME`: `administrador`
+* `COMERCIAL_PASSWORD`: a senha definida para a conta; armazene somente como secret do Render, nunca no código, README ou Git.
+* `COMERCIAL_SESSION_SECRET`: segredo aleatório com pelo menos 32 caracteres. Gere um valor com:
+   ```powershell
+   .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(48))"
+   ```
+
+Salve e faça redeploy para aplicar. Para testar localmente, defina as mesmas variáveis no PowerShell que iniciará o Uvicorn. Quando qualquer variável de autenticação estiver ausente, a área permanece fechada.
+
+### Acesso da área Comercial ao BigQuery
+
+A área Comercial consulta sob demanda a tabela pública `opencnpj-bigquery.public.receita`.
+O projeto Google Cloud configurado abaixo executa os jobs e responde pelo faturamento das consultas; a aplicação não copia nem armazena a base CNPJ.
+
+1. Crie ou selecione um projeto Google Cloud e habilite o BigQuery. Para desenvolvimento, o sandbox do BigQuery permite consultar tabelas públicas sem cadastrar faturamento, sujeito às cotas e limitações do sandbox.
+2. Instale a Google Cloud CLI e autentique as credenciais ADC da sua conta:
+   ```powershell
+   gcloud auth application-default login
+   ```
+3. No PowerShell, configure o ID do projeto que executará as consultas:
+   ```powershell
+   $env:BIGQUERY_PROJECT_ID = "seu-id-de-projeto"
+   ```
+4. Opcionalmente, defina o limite de bytes faturados por consulta. O BigQuery rejeitará uma consulta que ultrapassar o limite:
+   ```powershell
+   $env:BIGQUERY_MAX_BYTES_BILLED = "53687091200"
+   ```
+5. Inicie ou reinicie a aplicação no mesmo terminal:
+   ```powershell
+   .\.venv\Scripts\python.exe -m uvicorn main:app --reload
+   ```
+
+No desenvolvimento local, mantenha a credencial ADC fora do repositório. Em produção, use identidade de workload/serviço gerenciada pelo provedor; não coloque chaves de conta de serviço no frontend nem no Git. Sem projeto ou credenciais disponíveis, as páginas existentes continuam iniciando normalmente e as rotas Comerciais retornam `503` com a configuração necessária.
+
+#### Autenticação de produção no Render
+
+O OIDC gerenciado atualmente documentado pelo Render não lista o Google Cloud como provedor. Para manter o serviço autenticado sem login interativo:
+
+1. No Google Cloud, crie uma conta de serviço dedicada à aplicação e uma chave JSON para ela. Conceda `BigQuery Job User` no projeto que executará as consultas. A tabela OpenCNPJ é pública; se a política de acesso efetiva exigir, conceda também `BigQuery Data Viewer` no dataset de leitura. Não use uma conta de usuário pessoal.
+2. No Render, abra o serviço e acesse **Environment** > **Secret Files**. Adicione o conteúdo do JSON com o nome `opencnpj-bigquery.json`. O arquivo fica disponível em `/etc/secrets/opencnpj-bigquery.json` em runtime.
+3. Em **Environment Variables**, configure:
+   - `GOOGLE_APPLICATION_CREDENTIALS=/etc/secrets/opencnpj-bigquery.json`
+   - `BIGQUERY_PROJECT_ID` com o ID do projeto executor
+   - `BIGQUERY_MAX_BYTES_BILLED` com o teto de bytes por consulta, por exemplo `374575253160`
+4. Salve e faça deploy do serviço. O cliente Google usa ADC a partir do Secret File, sem `gcloud auth application-default login` nem interação durante as 24 horas de execução.
+
+Restrinja a chave à conta de serviço dedicada, mantenha-a somente em Secret Files, não a envie por chat, não a coloque em variável pública, `render.yaml`, `.env` versionado ou Git, e rotacione/revogue-a se houver exposição. Em ambientes que suportam identidade de serviço nativa, prefira essa opção sem chave persistente.
+
+Endpoints da área Comercial:
+
+* `GET /api/empresas`: filtros repetíveis `cnaes`, `tipo_cnae`, `uf`, `municipio`, `situacao`, `tipo_estabelecimento`, `porte`, `simples_nacional`, `page` e `limit`.
+* `GET /api/empresas/{cnpj}`: detalhes cadastrais sob demanda.
+* `GET /api/cnaes?q=termo`: busca códigos/descrições para o autocomplete.
+
+O campo de total permanece `null`; não é feita consulta de contagem adicional. `LIMIT` controla as linhas retornadas, não necessariamente os bytes processados pelo BigQuery. Consulte o preview de custos do console e configure um limite adequado antes de liberar pesquisas em produção.
+
 ---
 
 ## ☁️ Como Fazer o Deploy Fácil no Render.com (Gratuito)
@@ -80,6 +142,8 @@ Uma grande vantagem dessa reestruturação é que ela roda solta na camada gratu
 7. Em **Start Command**, coloque:
    `uvicorn main:app --host 0.0.0.0 --port $PORT`
 8. Aceite o plano Free e clique em *Create Web Service*.
+
+Depois do primeiro deploy, configure também os secrets de autenticação Comercial listados acima e os secrets de BigQuery. Ao salvar, escolha **Save, rebuild, and deploy** (ou **Save and deploy**) para aplicar as variáveis ao processo do serviço.
 
 Após poucos minutos, sua plataforma de consulta já terá um link público (Ex: `https://meu-cnpj-app.onrender.com`).
 

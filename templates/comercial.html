@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#143d32">
+    <title>{{ titulo }}</title>
+    <link rel="stylesheet" href="/static/comercial.css?v=3">
+    <script src="/static/comercial.js?v=4" defer></script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="wordmark" href="/" aria-label="Voltar para a página inicial">
+            <span class="wordmark-mark" aria-hidden="true">C</span>
+            <span>Consulta CNPJ</span>
+        </a>
+        <div class="header-actions">
+            <a class="back-link" href="/">Perfis <span aria-hidden="true">&#8599;</span></a>
+            <form method="post" action="/comercial/logout">
+                <button class="logout-button" type="submit">Sair</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="workspace">
+        <div class="page-heading">
+            <div>
+                <p class="eyebrow">PROSPECÇÃO</p>
+                <h1>Empresas por atividade</h1>
+                <p class="lede">Encontre empresas para sua próxima conversa comercial.</p>
+            </div>
+            <span class="source-mark"><span aria-hidden="true"></span> Dados públicos CNPJ</span>
+        </div>
+
+        <form id="search-form" class="filter-panel">
+            <div class="filter-heading">
+                <h2>Filtros de pesquisa</h2>
+                <button class="text-button" id="clear-filters" type="button">Limpar filtros</button>
+            </div>
+
+            <div class="filter-grid">
+                <label class="field field-wide">
+                    <span>CNAE</span>
+                    <input id="cnaes" name="cnaes" type="text" autocomplete="off"
+                        placeholder="Ex.: 8650-0/04, 8630-5/03">
+                    <small>Informe um ou mais códigos, separados por vírgula.</small>
+                </label>
+                <div class="field field-wide cnae-lookup">
+                    <label for="cnae-lookup-input">Localizar CNAE por código ou atividade</label>
+                    <div class="lookup-controls">
+                        <input id="cnae-lookup-input" type="search" maxlength="100" autocomplete="off"
+                            placeholder="Código ou nome da atividade">
+                        <button id="cnae-lookup-button" class="secondary-button" type="button">Buscar CNAE</button>
+                    </div>
+                    <p id="cnae-lookup-status" class="lookup-status" role="status" hidden></p>
+                    <ul id="cnae-suggestions" class="cnae-suggestions" hidden></ul>
+                </div>
+                <label class="field">
+                    <span>Tipo de CNAE</span>
+                    <select name="tipo_cnae">
+                        <option value="QUALQUER">Principal ou secundário</option>
+                        <option value="PRINCIPAL">Principal</option>
+                        <option value="SECUNDARIO">Secundário</option>
+                    </select>
+                </label>
+                <label class="field field-compact">
+                    <span>UF</span>
+                    <input name="uf" type="text" maxlength="2" autocomplete="address-level1" placeholder="BA">
+                </label>
+                <label class="field">
+                    <span>Município</span>
+                    <input name="municipio" type="text" maxlength="100" autocomplete="address-level2" placeholder="Salvador">
+                </label>
+                <label class="field">
+                    <span>Situação cadastral</span>
+                    <select name="situacao">
+                        <option value="">Todas</option>
+                        <option value="ATIVA">Ativa</option>
+                        <option value="SUSPENSA">Suspensa</option>
+                        <option value="INAPTA">Inapta</option>
+                        <option value="BAIXADA">Baixada</option>
+                        <option value="NULA">Nula</option>
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Estabelecimento</span>
+                    <select name="tipo_estabelecimento">
+                        <option value="">Matriz e filial</option>
+                        <option value="MATRIZ">Matriz</option>
+                        <option value="FILIAL">Filial</option>
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Porte</span>
+                    <select name="porte">
+                        <option value="">Todos</option>
+                        <option value="Microempresa (ME)">Microempresa (ME)</option>
+                        <option value="Empresa de Pequeno Porte (EPP)">Empresa de Pequeno Porte (EPP)</option>
+                        <option value="Demais">Demais</option>
+                        <option value="Não informado">Não informado</option>
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Simples Nacional</span>
+                    <select name="simples_nacional">
+                        <option value="">Indiferente</option>
+                        <option value="true">Optante</option>
+                        <option value="false">Não optante</option>
+                    </select>
+                </label>
+                <label class="field field-compact">
+                    <span>Por página</span>
+                    <select name="limit">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="filter-actions">
+                <p id="search-error" class="error-message" role="alert" hidden></p>
+                <button class="primary-button" id="search-button" type="submit">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg>
+                    <span>Pesquisar empresas</span>
+                </button>
+            </div>
+        </form>
+
+        <section class="results-section" aria-labelledby="results-title">
+            <div class="results-heading">
+                <div>
+                    <p class="eyebrow">RESULTADOS</p>
+                    <h2 id="results-title">Empresas encontradas</h2>
+                </div>
+                <span id="result-count" class="result-count" aria-live="polite">Aguardando pesquisa</span>
+            </div>
+
+            <div id="results-status" class="results-status" aria-live="polite">
+                Defina os filtros e pesquise para listar empresas.
+            </div>
+
+            <div id="results-wrap" class="table-wrap" hidden>
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">CNPJ</th>
+                            <th scope="col">Empresa</th>
+                            <th scope="col">Situação</th>
+                            <th scope="col">CNAE principal</th>
+                            <th scope="col">Localização</th>
+                            <th scope="col">Contato</th>
+                            <th scope="col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body"></tbody>
+                </table>
+            </div>
+
+            <nav id="pagination" class="pagination" aria-label="Paginação dos resultados" hidden>
+                <button id="previous-page" class="page-button" type="button">&#8592; Anterior</button>
+                <span id="page-label">Página 1</span>
+                <button id="next-page" class="page-button" type="button">Próxima &#8594;</button>
+            </nav>
+        </section>
+    </main>
+
+    <dialog id="company-dialog" class="company-dialog" aria-labelledby="dialog-title">
+        <div class="dialog-heading">
+            <div>
+                <p class="eyebrow">CADASTRO</p>
+                <h2 id="dialog-title">Detalhes da empresa</h2>
+            </div>
+            <button id="close-dialog" class="close-button" type="button" aria-label="Fechar">&times;</button>
+        </div>
+        <div id="company-details" class="company-details"></div>
+    </dialog>
+</body>
+</html>
