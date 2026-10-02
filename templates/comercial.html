@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#143d32">
     <title>{{ titulo }}</title>
-    <link rel="stylesheet" href="/static/comercial.css?v=3">
-    <script src="/static/comercial.js?v=4" defer></script>
+    <link rel="stylesheet" href="/static/comercial.css?v=5">
+    <script src="/static/comercial.js?v=6" defer></script>
 </head>
 <body>
     <header class="topbar">
@@ -70,6 +70,15 @@
                 <label class="field">
                     <span>Município</span>
                     <input name="municipio" type="text" maxlength="100" autocomplete="address-level2" placeholder="Salvador">
+                </label>
+                <label class="field">
+                    <span>Bairro</span>
+                    <input name="bairro" type="text" maxlength="100" autocomplete="address-level3" placeholder="Centro">
+                </label>
+                <label class="field field-wide">
+                    <span>Nome da empresa</span>
+                    <input name="nome" type="text" maxlength="100" autocomplete="organization" placeholder="Razão social ou nome fantasia">
+                    <small>Busca por trecho, sem exigir o nome completo.</small>
                 </label>
                 <label class="field">
                     <span>Situação cadastral</span>
@@ -160,6 +169,12 @@
             <nav id="pagination" class="pagination" aria-label="Paginação dos resultados" hidden>
                 <button id="previous-page" class="page-button" type="button">&#8592; Anterior</button>
                 <span id="page-label">Página 1</span>
+                <form id="page-jump-form" class="page-jump">
+                    <label for="page-jump-input">Ir para</label>
+                    <input id="page-jump-input" type="number" min="1" value="1" required>
+                    <span>de <strong id="total-pages-label">1</strong></span>
+                    <button class="page-button" type="submit">Ir</button>
+                </form>
                 <button id="next-page" class="page-button" type="button">Próxima &#8594;</button>
             </nav>
         </section>

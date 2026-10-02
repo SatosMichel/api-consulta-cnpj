@@ -68,7 +68,12 @@ class FakeProvider:
             raise self.error
         return PaginaEmpresas(
             data=(make_company(),),
-            pagination=Paginacao(page=filtros.page, limit=filtros.limit),
+            pagination=Paginacao(
+                page=filtros.page,
+                limit=filtros.limit,
+                total=101,
+                total_pages=3,
+            ),
         )
 
     def consultar_empresa_por_cnpj(self, cnpj: str) -> Empresa | None:
@@ -124,6 +129,8 @@ class CnpjApiTests(unittest.TestCase):
                 ("cnaes", "8630-5/03"),
                 ("uf", "ba"),
                 ("municipio", "Salvador"),
+                ("bairro", "Rebouças"),
+                ("nome", "Michel Santos Rebouças"),
                 ("situacao", "ATIVA"),
                 ("page", "2"),
                 ("limit", "25"),
@@ -137,12 +144,14 @@ class CnpjApiTests(unittest.TestCase):
         self.assertEqual(payload["pagination"], {
             "page": 2,
             "limit": 25,
-            "total": None,
-            "totalPages": None,
+            "total": 101,
+            "totalPages": 3,
         })
         self.assertEqual(provider.filters.cnaes, ("8650004", "8630503"))
         self.assertEqual(provider.filters.uf, "BA")
         self.assertEqual(provider.filters.municipio, "Salvador")
+        self.assertEqual(provider.filters.bairro, "Rebouças")
+        self.assertEqual(provider.filters.nome, "Michel Santos Rebouças")
 
     def test_empty_filters_are_allowed_and_return_a_page(self):
         client = self.make_client(FakeProvider())
@@ -224,7 +233,12 @@ class CnpjApiTests(unittest.TestCase):
         self.assertEqual(page.status_code, 200)
         self.assertIn("Empresas por atividade", page.text)
         self.assertIn('id="cnae-lookup-button"', page.text)
+        self.assertIn('name="bairro"', page.text)
+        self.assertIn('name="nome"', page.text)
+        self.assertIn('id="page-jump-form"', page.text)
         self.assertIn("/api/empresas", script.text)
+        self.assertIn("payload.pagination.totalPages", script.text)
+        self.assertIn("pageJumpForm.addEventListener", script.text)
         self.assertIn("cnaeLookupButton.addEventListener", script.text)
         self.assertIn("addDetailRow('E-mail', company.email", script.text)
         self.assertIn("[hidden] { display: none !important; }", stylesheet.text)

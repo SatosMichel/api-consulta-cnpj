@@ -231,10 +231,13 @@ tbody tr:hover { background: #f8faf8; }
 .status-label[data-status="Suspensa"] { color: #87511e; background: #f8efe4; }
 .detail-button { padding: 4px 0; border: 0; color: var(--green); background: transparent; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .detail-button:hover { text-decoration: underline; }
-.pagination { justify-content: center; margin-top: 16px; color: var(--muted); font-size: 12px; }
+.pagination { justify-content: center; flex-wrap: wrap; margin-top: 16px; color: var(--muted); font-size: 12px; }
 .page-button { min-height: 34px; padding: 6px 10px; color: var(--green); background: #fff; }
 .page-button:hover:not(:disabled) { background: var(--green-soft); }
 .page-button:disabled { cursor: default; opacity: .45; }
+.page-jump { display: inline-flex; align-items: center; gap: 7px; }
+.page-jump input { width: 72px; min-height: 34px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 3px; color: var(--ink); font: inherit; }
+.page-jump input:focus { outline: 2px solid #17684f30; border-color: var(--green); }
 
 .company-dialog {
     width: min(680px, calc(100% - 32px));

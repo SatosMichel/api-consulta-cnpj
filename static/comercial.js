@@ -10,6 +10,9 @@
     const previousButton = document.querySelector('#previous-page');
     const nextButton = document.querySelector('#next-page');
     const pageLabel = document.querySelector('#page-label');
+    const pageJumpForm = document.querySelector('#page-jump-form');
+    const pageJumpInput = document.querySelector('#page-jump-input');
+    const totalPagesLabel = document.querySelector('#total-pages-label');
     const cnaeInput = document.querySelector('#cnaes');
     const cnaeLookupInput = document.querySelector('#cnae-lookup-input');
     const cnaeLookupButton = document.querySelector('#cnae-lookup-button');
@@ -20,7 +23,7 @@
     const companyDetails = document.querySelector('#company-details');
 
     let page = 1;
-    let hasNextPage = false;
+    let totalPages = 0;
     let searchController;
     let cnaeController;
 
@@ -116,7 +119,7 @@
             .filter(Boolean);
 
         for (const code of codes) params.append('cnaes', code);
-        for (const name of ['tipo_cnae', 'uf', 'municipio', 'situacao', 'tipo_estabelecimento', 'porte', 'simples_nacional']) {
+        for (const name of ['tipo_cnae', 'uf', 'municipio', 'bairro', 'nome', 'situacao', 'tipo_estabelecimento', 'porte', 'simples_nacional']) {
             const value = String(formData.get(name) || '').trim();
             if (value) params.set(name, value);
         }
@@ -138,17 +141,27 @@
             const payload = await response.json();
             if (!response.ok) throw new Error(payload.detail || 'Não foi possível concluir a pesquisa.');
 
+            const returnedPage = payload.pagination.page;
+            totalPages = payload.pagination.totalPages ?? 0;
+            if (totalPages > 0 && targetPage > totalPages) {
+                return search(totalPages);
+            }
+
             renderCompanies(payload.data);
             resultsStatus.hidden = payload.data.length > 0;
             resultsWrap.hidden = payload.data.length === 0;
-            pagination.hidden = payload.data.length === 0;
-            resultCount.textContent = `${payload.data.length} ${payload.data.length === 1 ? 'empresa nesta página' : 'empresas nesta página'}`;
+            pagination.hidden = payload.data.length === 0 || totalPages <= 1;
+            resultCount.textContent = payload.pagination.total == null
+                ? `${payload.data.length} ${payload.data.length === 1 ? 'empresa nesta página' : 'empresas nesta página'}`
+                : `${Number(payload.pagination.total).toLocaleString('pt-BR')} ${payload.pagination.total === 1 ? 'empresa encontrada' : 'empresas encontradas'}`;
             resultsStatus.dataset.kind = 'empty';
             resultsStatus.textContent = 'Nenhuma empresa encontrada para estes filtros.';
-            pageLabel.textContent = `Página ${payload.pagination.page}`;
-            previousButton.disabled = payload.pagination.page <= 1;
-            hasNextPage = payload.data.length === payload.pagination.limit;
-            nextButton.disabled = !hasNextPage;
+            pageLabel.textContent = `Página ${returnedPage} de ${totalPages}`;
+            pageJumpInput.value = String(returnedPage);
+            pageJumpInput.max = String(totalPages);
+            totalPagesLabel.textContent = String(totalPages);
+            previousButton.disabled = returnedPage <= 1;
+            nextButton.disabled = returnedPage >= totalPages;
         } catch (error) {
             if (error.name === 'AbortError') return;
             resultsStatus.hidden = false;
@@ -287,7 +300,15 @@
         if (page > 1) search(page - 1);
     });
     nextButton.addEventListener('click', () => {
-        if (hasNextPage) search(page + 1);
+        if (page < totalPages) search(page + 1);
+    });
+    pageJumpForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (!pageJumpInput.reportValidity()) return;
+        const targetPage = Number(pageJumpInput.value);
+        if (Number.isInteger(targetPage) && targetPage >= 1 && targetPage <= totalPages) {
+            search(targetPage);
+        }
     });
     cnaeLookupButton.addEventListener('click', () => {
         const term = cnaeLookupInput.value.trim();

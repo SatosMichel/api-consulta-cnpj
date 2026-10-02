@@ -30,6 +30,8 @@ class FiltrosEmpresa:
     tipo_cnae: TipoCnae = TipoCnae.QUALQUER
     uf: str | None = None
     municipio: str | None = None
+    bairro: str | None = None
+    nome: str | None = None
     situacao: SituacaoCadastral | None = None
     tipo_estabelecimento: TipoEstabelecimento | None = None
     porte: str | None = None
@@ -45,7 +47,11 @@ class FiltrosEmpresa:
         if self.municipio is not None:
             if not isinstance(self.municipio, str):
                 raise ValueError("Município inválido.")
-            object.__setattr__(self, "municipio", self.municipio.strip())
+            object.__setattr__(self, "municipio", self._normalize_text_filter(self.municipio, "Município"))
+        if self.bairro is not None:
+            object.__setattr__(self, "bairro", self._normalize_text_filter(self.bairro, "Bairro"))
+        if self.nome is not None:
+            object.__setattr__(self, "nome", self._normalize_text_filter(self.nome, "Nome da empresa"))
         if isinstance(self.situacao, str):
             object.__setattr__(self, "situacao", SituacaoCadastral(self.situacao.strip().upper()))
         if isinstance(self.tipo_cnae, str):
@@ -73,6 +79,17 @@ class FiltrosEmpresa:
                 raise ValueError("Cada CNAE deve ter 7 dígitos, com ou sem máscara.")
             normalized_cnaes.append(re.sub(r"[^0-9]", "", cnae))
         object.__setattr__(self, "cnaes", tuple(dict.fromkeys(normalized_cnaes)))
+
+    @staticmethod
+    def _normalize_text_filter(value: str, label: str) -> str | None:
+        if not isinstance(value, str):
+            raise ValueError(f"{label} inválido.")
+        normalized = value.strip()
+        if not normalized:
+            return None
+        if len(normalized) > 100 or any(ord(char) < 32 for char in normalized):
+            raise ValueError(f"{label} deve ter até 100 caracteres.")
+        return normalized
 
 
 @dataclass(frozen=True)

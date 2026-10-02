@@ -120,11 +120,11 @@ Restrinja a chave à conta de serviço dedicada, mantenha-a somente em Secret Fi
 
 Endpoints da área Comercial:
 
-* `GET /api/empresas`: filtros repetíveis `cnaes`, `tipo_cnae`, `uf`, `municipio`, `situacao`, `tipo_estabelecimento`, `porte`, `simples_nacional`, `page` e `limit`.
+* `GET /api/empresas`: filtros repetíveis `cnaes`, `tipo_cnae`, `uf`, `municipio`, `bairro`, `nome`, `situacao`, `tipo_estabelecimento`, `porte`, `simples_nacional`, `page` e `limit`.
 * `GET /api/empresas/{cnpj}`: detalhes cadastrais sob demanda.
 * `GET /api/cnaes?q=termo`: busca códigos/descrições para o autocomplete.
 
-O campo de total permanece `null`; não é feita consulta de contagem adicional. `LIMIT` controla as linhas retornadas, não necessariamente os bytes processados pelo BigQuery. Consulte o preview de custos do console e configure um limite adequado antes de liberar pesquisas em produção.
+O total e o número de páginas são calculados junto com os resultados; se a página solicitada vier vazia, é feita uma consulta de contagem para permitir identificar o limite e navegar diretamente. Isso pode aumentar os bytes processados: `LIMIT` controla as linhas retornadas, não necessariamente o custo da consulta. Configure `BIGQUERY_MAX_BYTES_BILLED` e verifique o preview de custos antes de liberar pesquisas em produção.
 
 ---
 

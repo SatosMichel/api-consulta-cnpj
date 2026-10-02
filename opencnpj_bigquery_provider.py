@@ -117,12 +117,7 @@ class OpenCnpjBigQueryProvider:
     def buscar_empresas(self, filtros: FiltrosEmpresa) -> PaginaEmpresas:
         self._validate_filters(filtros)
         where_clauses: list[str] = []
-        parameters: list[Any] = [
-            bigquery.ScalarQueryParameter("limit", "INT64", filtros.limit),
-            bigquery.ScalarQueryParameter(
-                "offset", "INT64", (filtros.page - 1) * filtros.limit
-            ),
-        ]
+        parameters: list[Any] = []
 
         if filtros.cnaes:
             parameters.append(
@@ -149,6 +144,21 @@ class OpenCnpjBigQueryProvider:
             where_clauses.append("UPPER(r.municipio) = UPPER(@municipio)")
             parameters.append(
                 bigquery.ScalarQueryParameter("municipio", "STRING", filtros.municipio)
+            )
+        if filtros.bairro:
+            where_clauses.append(
+                "STRPOS(LOWER(COALESCE(r.bairro, '')), LOWER(@bairro)) > 0"
+            )
+            parameters.append(
+                bigquery.ScalarQueryParameter("bairro", "STRING", filtros.bairro)
+            )
+        if filtros.nome:
+            where_clauses.append(
+                "(STRPOS(LOWER(COALESCE(r.razao_social, '')), LOWER(@nome)) > 0 "
+                "OR STRPOS(LOWER(COALESCE(r.nome_fantasia, '')), LOWER(@nome)) > 0)"
+            )
+            parameters.append(
+                bigquery.ScalarQueryParameter("nome", "STRING", filtros.nome)
             )
         if filtros.situacao:
             where_clauses.append("r.situacao_cadastral = @situacao")
@@ -182,18 +192,36 @@ class OpenCnpjBigQueryProvider:
             )
 
         where_sql = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        page_parameters = parameters + [
+            bigquery.ScalarQueryParameter("limit", "INT64", filtros.limit),
+            bigquery.ScalarQueryParameter(
+                "offset", "INT64", (filtros.page - 1) * filtros.limit
+            ),
+        ]
         sql = f"""
-            SELECT {self.COMPANY_PROJECTION}
+            SELECT COUNT(*) OVER() AS filtered_total, {self.COMPANY_PROJECTION}
             FROM `{self.TABLE_ID}` AS r
             {where_sql}
             ORDER BY r.cnpj
             LIMIT @limit OFFSET @offset
         """
-        rows = self._run_query(sql, parameters)
+        rows = self._run_query(sql, page_parameters)
+        if rows:
+            total = int(self._value(rows[0], "filtered_total", 0))
+        else:
+            count_sql = f"SELECT COUNT(*) AS total FROM `{self.TABLE_ID}` AS r {where_sql}"
+            count_rows = self._run_query(count_sql, parameters)
+            total = int(self._value(count_rows[0], "total", 0)) if count_rows else 0
+
         companies = tuple(self._company_from_row(row) for row in rows)
         return PaginaEmpresas(
             data=companies,
-            pagination=Paginacao(page=filtros.page, limit=filtros.limit),
+            pagination=Paginacao(
+                page=filtros.page,
+                limit=filtros.limit,
+                total=total,
+                total_pages=(total + filtros.limit - 1) // filtros.limit,
+            ),
         )
 
     def consultar_empresa_por_cnpj(self, cnpj: str) -> Empresa | None:
@@ -276,12 +304,6 @@ class OpenCnpjBigQueryProvider:
             raise ValueError(f"Informe no máximo {cls.MAX_CNAES} CNAEs por pesquisa.")
         if filtros.uf and filtros.uf not in cls._UF_VALUES:
             raise ValueError("UF inválida.")
-        if filtros.municipio is not None and (
-            not filtros.municipio.strip()
-            or len(filtros.municipio) > 100
-            or any(ord(char) < 32 for char in filtros.municipio)
-        ):
-            raise ValueError("Município inválido.")
         if filtros.situacao and filtros.situacao not in cls._SITUATION_VALUES:
             raise ValueError("Situação cadastral inválida.")
         if filtros.porte and filtros.porte not in cls._PORTE_VALUES:
