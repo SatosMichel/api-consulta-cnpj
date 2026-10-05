@@ -141,7 +141,7 @@
             .filter(Boolean);
 
         for (const code of codes) params.append('cnaes', code);
-        for (const name of ['tipo_cnae', 'uf', 'municipio', 'bairro', 'nome', 'situacao', 'tipo_estabelecimento', 'porte', 'simples_nacional']) {
+        for (const name of ['tipo_cnae', 'uf', 'municipio', 'bairro', 'nome', 'situacao', 'tipo_estabelecimento', 'porte', 'simples_nacional', 'ano_abertura_inicio', 'ano_abertura_fim']) {
             const value = String(formData.get(name) || '').trim();
             if (value) params.set(name, value);
         }
@@ -149,6 +149,18 @@
         params.set('limit', String(formData.get('limit') || 50));
         return `/api/empresas?${params.toString()}`;
     }
+
+    cnaeInput.addEventListener('input', () => {
+        const cursor = cnaeInput.selectionStart;
+        const value = cnaeInput.value;
+        const allowedCharacters = /[^0-9,;\/\-\s]/g;
+        const sanitized = value.replace(allowedCharacters, '');
+        if (sanitized !== value) {
+            cnaeInput.value = sanitized;
+            const adjustedCursor = value.slice(0, cursor).replace(allowedCharacters, '').length;
+            cnaeInput.setSelectionRange(adjustedCursor, adjustedCursor);
+        }
+    });
 
     async function search(targetPage = 1) {
         searchController?.abort();

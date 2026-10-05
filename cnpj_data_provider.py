@@ -36,6 +36,8 @@ class FiltrosEmpresa:
     tipo_estabelecimento: TipoEstabelecimento | None = None
     porte: str | None = None
     simples_nacional: bool | None = None
+    ano_abertura_inicio: int | None = None
+    ano_abertura_fim: int | None = None
     page: int = 1
     limit: int = 50
 
@@ -70,6 +72,17 @@ class FiltrosEmpresa:
             raise ValueError("page deve ser um inteiro.")
         if not isinstance(self.limit, int) or isinstance(self.limit, bool):
             raise ValueError("limit deve ser um inteiro.")
+        for year in (self.ano_abertura_inicio, self.ano_abertura_fim):
+            if year is not None and (
+                not isinstance(year, int) or isinstance(year, bool) or not 1800 <= year <= 2100
+            ):
+                raise ValueError("Ano de abertura deve estar entre 1800 e 2100.")
+        if (
+            self.ano_abertura_inicio is not None
+            and self.ano_abertura_fim is not None
+            and self.ano_abertura_inicio > self.ano_abertura_fim
+        ):
+            raise ValueError("O ano inicial não pode ser posterior ao ano final.")
 
         normalized_cnaes = []
         for cnae in self.cnaes:

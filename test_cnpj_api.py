@@ -132,6 +132,8 @@ class CnpjApiTests(unittest.TestCase):
                 ("bairro", "Rebouças"),
                 ("nome", "Michel Santos Rebouças"),
                 ("situacao", "ATIVA"),
+                ("ano_abertura_inicio", "2020"),
+                ("ano_abertura_fim", "2025"),
                 ("page", "2"),
                 ("limit", "25"),
             ],
@@ -152,6 +154,17 @@ class CnpjApiTests(unittest.TestCase):
         self.assertEqual(provider.filters.municipio, "Salvador")
         self.assertEqual(provider.filters.bairro, "Rebouças")
         self.assertEqual(provider.filters.nome, "Michel Santos Rebouças")
+        self.assertEqual(provider.filters.ano_abertura_inicio, 2020)
+        self.assertEqual(provider.filters.ano_abertura_fim, 2025)
+
+    def test_invalid_opening_year_range_is_rejected(self):
+        client = self.make_client(FakeProvider())
+
+        response = client.get(
+            "/api/empresas?ano_abertura_inicio=2025&ano_abertura_fim=2020"
+        )
+
+        self.assertEqual(response.status_code, 422)
 
     def test_empty_filters_are_allowed_and_return_a_page(self):
         client = self.make_client(FakeProvider())

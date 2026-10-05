@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#143d32">
     <title>{{ titulo }}</title>
     <link rel="stylesheet" href="/static/comercial.css?v=5">
-    <script src="/static/comercial.js?v=8" defer></script>
+    <script src="/static/comercial.js?v=9" defer></script>
 </head>
 <body>
     <header class="topbar">
@@ -41,9 +41,17 @@
             <div class="filter-grid">
                 <label class="field field-wide">
                     <span>CNAE</span>
-                    <input id="cnaes" name="cnaes" type="text" autocomplete="off"
+                    <input id="cnaes" name="cnaes" type="text" inputmode="numeric" autocomplete="off"
                         placeholder="Ex.: 8650-0/04, 8630-5/03">
                     <small>Informe um ou mais códigos, separados por vírgula.</small>
+                </label>
+                <label class="field">
+                    <span>Abertura a partir do ano</span>
+                    <input name="ano_abertura_inicio" type="number" min="1800" max="2100" step="1" placeholder="2020">
+                </label>
+                <label class="field">
+                    <span>Abertura até o ano</span>
+                    <input name="ano_abertura_fim" type="number" min="1800" max="2100" step="1" placeholder="2025">
                 </label>
                 <div class="field field-wide cnae-lookup">
                     <label for="cnae-lookup-input">Localizar CNAE por código ou atividade</label>

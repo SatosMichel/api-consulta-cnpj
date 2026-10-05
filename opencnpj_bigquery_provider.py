@@ -1,6 +1,7 @@
 import os
 import re
 from collections.abc import Iterable, Mapping
+from datetime import date
 from typing import Any
 
 from google.api_core.exceptions import GoogleAPICallError
@@ -194,6 +195,24 @@ class OpenCnpjBigQueryProvider:
             parameters.append(
                 bigquery.ScalarQueryParameter(
                     "simples_nacional", "BOOL", filtros.simples_nacional
+                )
+            )
+        if filtros.ano_abertura_inicio is not None:
+            where_clauses.append("r.data_inicio_atividade >= @data_abertura_inicio")
+            parameters.append(
+                bigquery.ScalarQueryParameter(
+                    "data_abertura_inicio",
+                    "DATE",
+                    date(filtros.ano_abertura_inicio, 1, 1),
+                )
+            )
+        if filtros.ano_abertura_fim is not None:
+            where_clauses.append("r.data_inicio_atividade < @data_abertura_fim_exclusiva")
+            parameters.append(
+                bigquery.ScalarQueryParameter(
+                    "data_abertura_fim_exclusiva",
+                    "DATE",
+                    date(filtros.ano_abertura_fim + 1, 1, 1),
                 )
             )
 

@@ -61,6 +61,8 @@ class OpenCnpjBigQueryProviderTests(unittest.TestCase):
                 tipo_cnae=TipoCnae.QUALQUER,
                 page=2,
                 limit=25,
+                ano_abertura_inicio=2020,
+                ano_abertura_fim=2025,
             )
         )
 
@@ -76,6 +78,10 @@ class OpenCnpjBigQueryProviderTests(unittest.TestCase):
         self.assertIn("r.bairro", client.sql)
         self.assertIn("r.cnaes_secundarios.list", client.sql)
         self.assertEqual(parameters["offset"].value, 25)
+        self.assertIn("r.data_inicio_atividade >= @data_abertura_inicio", client.sql)
+        self.assertIn("r.data_inicio_atividade < @data_abertura_fim_exclusiva", client.sql)
+        self.assertEqual(parameters["data_abertura_inicio"].value, date(2020, 1, 1))
+        self.assertEqual(parameters["data_abertura_fim_exclusiva"].value, date(2026, 1, 1))
         self.assertEqual(result.pagination.page, 2)
         self.assertEqual(result.pagination.total, 51)
         self.assertEqual(result.pagination.total_pages, 3)

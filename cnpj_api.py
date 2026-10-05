@@ -153,6 +153,8 @@ def buscar_empresas(
     tipo_estabelecimento: TipoEstabelecimento | None = None,
     porte: Annotated[str | None, Query(max_length=40)] = None,
     simples_nacional: bool | None = None,
+    ano_abertura_inicio: Annotated[int | None, Query(ge=1800, le=2100)] = None,
+    ano_abertura_fim: Annotated[int | None, Query(ge=1800, le=2100)] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
 ) -> PaginaEmpresas | dict:
@@ -168,6 +170,8 @@ def buscar_empresas(
             tipo_estabelecimento=tipo_estabelecimento,
             porte=porte,
             simples_nacional=simples_nacional,
+            ano_abertura_inicio=ano_abertura_inicio,
+            ano_abertura_fim=ano_abertura_fim,
             page=page,
             limit=limit,
         )
