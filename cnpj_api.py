@@ -44,6 +44,7 @@ class EmpresaResponse(BaseModel):
     tipo_estabelecimento: str
     data_inicio_atividade: date | None
     cnae_principal: str
+    cnae_principal_descricao: str = ""
     cnaes_secundarios: tuple[str, ...]
     uf: str
     municipio: str

@@ -39,11 +39,31 @@
         return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('pt-BR').format(date);
     }
 
-    function phoneText(phones) {
-        return (phones || [])
-            .filter((phone) => !phone.is_fax && phone.numero)
-            .map((phone) => `(${phone.ddd}) ${phone.numero}`)
-            .join(' / ') || 'Não informado';
+    function phoneLinks(phones, company) {
+        const fragment = document.createDocumentFragment();
+        const validPhones = (phones || []).filter((phone) => !phone.is_fax && phone.numero);
+        if (!validPhones.length) {
+            fragment.append('Não informado');
+            return fragment;
+        }
+
+        for (const [index, phone] of validPhones.entries()) {
+            if (index > 0) fragment.append(' / ');
+            const name = company.nome_fantasia || company.razao_social || 'sua clínica';
+            const segment = company.cnae_principal_descricao
+                ? `${company.cnae_principal_descricao[0].toLocaleLowerCase('pt-BR')}${company.cnae_principal_descricao.slice(1)}`
+                : company.cnae_principal ? `CNAE ${company.cnae_principal}` : 'sua especialidade';
+            const message = `Olá! Tudo bem?\n\nSou Michel, consultor de vendas da EVO System. Encontrei a ${name} e vi que vocês trabalham com ${segment}.\n\nQueria te fazer uma pergunta rápida: *como vocês fazem hoje o registro das avaliações e evoluções dos pacientes? Utilizam sistema, planilha ou ainda parte do processo é manual?*`;
+            const number = `55${`${phone.ddd}${phone.numero}`.replace(/\D/g, '')}`;
+            const link = document.createElement('a');
+            link.href = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = `(${phone.ddd}) ${phone.numero}`;
+            link.title = 'Abrir conversa no WhatsApp';
+            fragment.append(link);
+        }
+        return fragment;
     }
 
     function appendTextCell(row, value, className = '') {
@@ -83,7 +103,9 @@
 
             appendTextCell(row, company.cnae_principal, 'cnae-cell');
             appendTextCell(row, [company.municipio, company.uf].filter(Boolean).join(' / '));
-            appendTextCell(row, phoneText(company.telefones));
+            const phoneCell = document.createElement('td');
+            phoneCell.append(phoneLinks(company.telefones, company));
+            row.append(phoneCell);
 
             const actionCell = document.createElement('td');
             const detailsButton = document.createElement('button');
@@ -188,7 +210,8 @@
         heading.textContent = label;
         const content = document.createElement('span');
         content.className = 'detail-value';
-        content.textContent = value || 'Não informado';
+        if (value instanceof DocumentFragment) content.append(value);
+        else content.textContent = value || 'Não informado';
         row.append(heading, content);
         companyDetails.append(row);
     }
@@ -226,7 +249,7 @@
             addDetailRow('MEI', company.mei == null ? 'Não informado' : company.mei ? 'Optante' : 'Não optante');
             addDetailRow('Endereço', address, true);
             addDetailRow('E-mail', company.email, true);
-            addDetailRow('Telefone', phoneText(company.telefones), true);
+            addDetailRow('Telefone', phoneLinks(company.telefones, company), true);
         } catch (error) {
             dialogTitle.textContent = 'Falha ao carregar cadastro';
             addDetailRow('Erro', error.message, true);

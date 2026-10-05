@@ -124,6 +124,7 @@ class Empresa:
     porte: str
     simples_nacional: bool | None
     mei: bool | None
+    cnae_principal_descricao: str = ""
 
 
 @dataclass(frozen=True)

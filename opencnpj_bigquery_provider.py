@@ -34,6 +34,12 @@ class OpenCnpjBigQueryProvider:
         r.matriz_filial AS tipo_estabelecimento,
         r.data_inicio_atividade,
         r.cnae_principal,
+        COALESCE((
+            SELECT item.element.descricao
+            FROM UNNEST(r.cnaes.list) AS item
+            WHERE item.element.codigo = r.cnae_principal
+            LIMIT 1
+        ), '') AS cnae_principal_descricao,
         ARRAY(
             SELECT item.element
             FROM UNNEST(r.cnaes_secundarios.list) AS item
@@ -344,6 +350,7 @@ class OpenCnpjBigQueryProvider:
             tipo_estabelecimento=cls._value(row, "tipo_estabelecimento", ""),
             data_inicio_atividade=cls._value(row, "data_inicio_atividade"),
             cnae_principal=cls._value(row, "cnae_principal", ""),
+            cnae_principal_descricao=cls._value(row, "cnae_principal_descricao", "") or "",
             cnaes_secundarios=tuple(secondary_cnaes),
             uf=cls._value(row, "uf", ""),
             municipio=cls._value(row, "municipio", ""),

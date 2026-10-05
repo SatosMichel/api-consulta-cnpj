@@ -88,6 +88,8 @@ class OpenCnpjBigQueryProviderTests(unittest.TestCase):
                     "razao_social": "Empresa Exemplo",
                     "situacao_cadastral": "Ativa",
                     "data_inicio_atividade": date(2020, 1, 2),
+                    "cnae_principal": "8650004",
+                    "cnae_principal_descricao": "Atividades de fisioterapia",
                     "cnaes_secundarios": ["8630503"],
                     "email": "contato@exemplo.com.br",
                     "telefones": [{"ddd": "71", "numero": "33334444", "is_fax": False}],
@@ -102,6 +104,7 @@ class OpenCnpjBigQueryProviderTests(unittest.TestCase):
 
         self.assertEqual(company.cnpj, "12345678000195")
         self.assertEqual(company.data_inicio_atividade, date(2020, 1, 2))
+        self.assertEqual(company.cnae_principal_descricao, "Atividades de fisioterapia")
         self.assertEqual(company.cnaes_secundarios, ("8630503",))
         self.assertEqual(company.email, "contato@exemplo.com.br")
         self.assertEqual(company.telefones[0].ddd, "71")
